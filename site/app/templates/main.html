@@ -1,30 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-             <meta charset="UTF-8">
-            <meta name="viewport"
-                  content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-            <meta http-equiv="X-UA-Compatible" content="ie=edge">
-            {#импортируем bootstrap с готовыми примерами #}
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    </head>
-<body>
-        <div class="container">
-        <h1>вставьте ссылку</h1>
-        <form action="/" method="post">
-            <input type="text" name="title" id="title" class="form-control" placeholder="ссылка" required><br>
-            <button type="submit" class="btn btn-primary">Сократить</button>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сокращатель ссылок</title>
+    <!-- Встроенные легкие стили для приятного дизайна -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 700px; margin: 30px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+        h1 { font-size: 1.6rem; text-align: center; margin-bottom: 20px; color: #222; }
+        h2 { font-size: 1.1rem; color: #555; margin-top: 30px; margin-bottom: 12px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 25px; }
+        input[type="url"] { flex: 1; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1rem; outline: none; }
+        input[type="url"]:focus { border-color: #007bff; }
+        button, .btn { background: #007bff; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; }
+        button:hover { background: #0056b3; }
+        .alert { background: #d1e7dd; color: #0f5132; padding: 15px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; border: 1px solid #badbcc; }
+        .alert a { color: #0f5132; font-weight: bold; text-decoration: none; word-break: break-all; }
+        .btn-success { background: #198754; padding: 8px 14px; font-size: 0.9rem; }
+        .btn-success:hover { background: #157347; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px; background: #fff; border: 1px solid #edf2f7; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); gap: 15px; }
+        .url-orig { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; font-size: 0.9rem; color: #495057; }
+        .clicks-badge { background: #6c757d; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; min-width: 30px; text-align: center; }
+        .url-short { display: flex; align-items: center; gap: 8px; }
+        .badge-link { background: #e7f1ff; color: #0d6efd; padding: 6px 12px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+        .btn-action { background: #f8f9fa; color: #333; padding: 6px 10px; font-size: 0.9rem; border: 1px solid #dee2e6; border-radius: 6px; }
+        .btn-action:hover { background: #e2e6ea; }
+        .btn-delete:hover { background: #dc3545; color: white; border-color: #dc3545; }
+        .empty { text-align: center; color: #6c757d; padding: 20px; background: #f8f9fa; border-radius: 8px; }
 
+        /* Стили для легкого встроенного окна подтверждения */
+        dialog { border: none; border-radius: 12px; padding: 20px; max-width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-secondary { background: #e2e6ea; color: #333; padding: 8px 14px; font-size: 0.9rem; border-radius: 6px; }
+        .btn-danger { background: #dc3545; color: white; padding: 8px 14px; font-size: 0.9rem; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Сократить ссылку</h1>
+
+        <form action="/" method="post" class="input-group">
+            <input type="url" name="title" id="title" placeholder="Вставьте длинную ссылку сюда..." required>
+            <button type="submit">Сократить</button>
         </form>
+
+        {% if short_url %}
+        <div class="alert">
+            <a href="{{ request.host_url }}{{ short_url }}" target="_blank">{{ request.host_url }}{{ short_url }}</a>
+            <button class="btn btn-success" onclick="navigator.clipboard.writeText('{{ request.host_url }}{{ short_url }}'); this.innerText='✓'; setTimeout(() => this.innerText='📋', 1500)">
+                📋
+            </button>
+        </div>
+        {% endif %}
+
+        <h2>История сокращений</h2>
+
+        {% for url in urls %}
+            <div class="list-item">
+                <!-- Длинная ссылка -->
+                <div class="url-orig">
+                    <a href="{{ url.original_url }}" target="_blank" style="color: inherit; text-decoration: none;">
+                        {{ url.original_url }}
+                    </a>
+                </div>
+
+                <!-- Просмотры -->
+                <div title="Количество переходов" class="clicks-badge">
+                    👁️ {{ url.clicks }}
+                </div>
+
+                <!-- Короткая ссылка и кнопки -->
+                <div class="url-short">
+                    <a href="{{ request.host_url }}{{ url.short_code }}" target="_blank" class="badge-link">
+                        {{ url.short_code }}
+                    </a>
+
+                    <button class="btn-action" title="Копировать" onclick="navigator.clipboard.writeText('{{ request.host_url }}{{ url.short_code }}')">📋</button>
+
+                    <!-- Кнопка просто открывает встроенный тег dialog -->
+                    <button class="btn-action btn-delete" title="Удалить" onclick="document.getElementById('dial{{ url.id }}').showModal()">🗑️</button>
+                </div>
+            </div>
+
+            <!-- Встроенное моментальное окно подтверждения HTML5 -->
+            <dialog id="dial{{ url.id }}">
+                <p style="margin: 0 0 10px 0; font-weight: bold;">Удаление ссылки</p>
+                <p style="margin: 0; color: #666; font-size: 0.95rem;">Вы уверены, что хотите удалить эту ссылку?</p>
+                <div class="modal-btns">
+                    <button class="btn-secondary" onclick="document.getElementById('dial{{ url.id }}').close()">Отмена</button>
+                    <a href="/delete/{{ url.id }}" class="btn btn-danger">Удалить</a>
+                </div>
+            </dialog>
+
+        {% else %}
+            <div class="empty">Ссылок пока нет.</div>
+        {% endfor %}
+
     </div>
-{% if short_url %}
-    <div class="mt-4 alert alert-success">
-        <p>Ваша сокращенная ссылка:</p>
-        <a href="{{ request.host_url }}{{ short_url }}" target="_blank">
-            {{ request.host_url }}{{ short_url }}
-        </a>
-    </div>
-{% endif %}
 
 </body>
 </html>
+
+
